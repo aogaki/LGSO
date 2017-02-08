@@ -10,3 +10,5 @@ Makefile
 *.d
 *~
 *.bu
+*.pdf
+

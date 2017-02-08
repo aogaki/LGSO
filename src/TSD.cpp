@@ -75,7 +75,11 @@ G4bool TSD::ProcessHits(G4Step *step, G4TouchableHistory */*history*/)
    G4double depositedEnergy = step->GetTotalEnergyDeposit();
    newHit->SetDepositedEnergy(depositedEnergy);
 
-   G4double time = postStepPoint->GetGlobalTime();
+   //G4double time = postStepPoint->GetGlobalTime();
+   // We need the time of step generated
+   G4double time = step->GetPreStepPoint()->GetGlobalTime();
+   // But if it is gamma, we need poststeppoint
+   if(trackID == 1) time = postStepPoint->GetGlobalTime();
    newHit->SetTime(time);
 
    G4int isLast = step->IsLastStepInVolume();
