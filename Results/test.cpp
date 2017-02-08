@@ -165,12 +165,16 @@ void test()
    
    vector<TTrack> track(kTrackSize); // TrackID have to be smaller than 200
    ClearTrack(track);
+
+   Double_t ene = 0.;
    
    for(Long64_t i = start; i < kNoEvent; i++){
       tree->GetEntry(i);
       if(trackID > kTrackSize) cout << "Think smart way!" << endl;
 
       if(eventID != currentID){
+         HisEne->Fill(ene * 1000);
+         ene = 0.;
          PrintTrack(track, fout);
          fout << "," << endl;
          ClearTrack(track);
@@ -186,8 +190,11 @@ void test()
          track[trackID].fTime = time;
       }
       track[trackID].fTotalDeposit += depositedEnergy;
-
+      ene += depositedEnergy;
+      
       if(i == kNoEvent - 1){ // The last event
+         HisEne->Fill(ene * 1000);
+         ene = 0.;
          PrintTrack(track, fout);
          ClearTrack(track);
          currentID = eventID;
