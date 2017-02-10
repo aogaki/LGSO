@@ -60,7 +60,8 @@ G4bool TSD::ProcessHits(G4Step *step, G4TouchableHistory */*history*/)
    const G4VProcess *process = postStepPoint->GetProcessDefinedStep();
    if(process) newHit->SetProcessName(process->GetProcessName());
    
-   G4ThreeVector position = track->GetPosition();
+   //G4ThreeVector position = track->GetPosition();
+   G4ThreeVector position = postStepPoint->GetPosition();
    newHit->SetPosition(position);
    
    G4ThreeVector vertexPosition = track->GetVertexPosition();

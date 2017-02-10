@@ -9,7 +9,7 @@
 #include <TH1.h>
 
 
-TH1D *HisEne = new TH1D("HisEne", "Deposited Energy", 1000, 0., 0.);
+TH1D *HisEne = new TH1D("HisEne", "Deposited Energy", 6000, 0., 600.);
 
 void DepEne(TString fileName = "test.root")
 {
@@ -71,25 +71,22 @@ void DepEne(TString fileName = "test.root")
    //tree->SetBranchAddress("IsLastStep", &isLastStep);
 
 
-    const Int_t maxEvent = tree->GetEntries();
-    cout << maxEvent << endl;
+   const Int_t maxEvent = tree->GetEntries();
+   cout << maxEvent << endl;
    tree->GetEntry(0);
    Int_t currentID = eventID;
    Double_t ene = 0.;
    for(Int_t iEvent = 0; iEvent < maxEvent; iEvent++){
-     tree->GetEntry(iEvent);
-     if(currentID != eventID){
-       currentID = eventID;
-       if(ene > 0.) HisEne->Fill(ene);
-       ene = 0.;
-     }
-     else{
-       ene += depositedEnergy;
-     }
-     
+      tree->GetEntry(iEvent);
+      if(currentID != eventID){
+         currentID = eventID;
+         if(ene > 0.) HisEne->Fill(ene * 1000.);
+         ene = 0.;
+      }
+      ene += depositedEnergy;
    }
    
-   delete tree;
+   //delete tree;
    //file->Close();
    HisEne->Draw();
 }

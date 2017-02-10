@@ -15,11 +15,18 @@ const Int_t kTrackSize = 500;
 TH1D *HisEne = new TH1D("HisEne", "Deposited Energy", 600, 0., 600.);
 
 
+class TGamma
+{
+public:
+   vector<TVector3> Interaction;
+   vector<Double_t> TotalDeposit; 
+};
+
 class TTrack
 {
 public:
    TTrack():fTrackID(0), fParentID(0), fVertex(0., 0., 0.),
-            fPosition(0., 0., 0.), fTotalDeposit(0.), fTime(1000.){};
+            fPosition(0., 0., 0.), fTotalDeposit(0.){};
    ~TTrack(){};
    
    Int_t fTrackID;
@@ -27,12 +34,7 @@ public:
    TVector3 fVertex;
    TVector3 fPosition;
    Double_t fTotalDeposit;
-   Double_t fTime;
    
-   bool operator<(const TTrack &right) const {
-      return fTime < right.fTime;
-   }
-
 private:
 
 };
@@ -71,6 +73,8 @@ void PrintTrack(vector<TTrack> &t, ofstream &fout)
       }
    }
 
+   
+   
    // Summing deposited energy to interaction point
    Int_t kNoTrack = sorted.size();
    for(Int_t i = kNoTrack - 1; i >= 0; i--){
@@ -87,6 +91,13 @@ void PrintTrack(vector<TTrack> &t, ofstream &fout)
             break;
          }
       }
+   }
+
+   // remove 0
+   kNoTrack = sorted.size(); // Use again? think smart way!
+   for(Int_t i = 0; i < kNoTrack; i++){
+      if(!(sorted[i].fTotalDeposit > 0.))
+      sorted.erase(sorted.begin() + i);
    }
 
    kNoTrack = sorted.size(); // Use again? think smart way!
@@ -171,34 +182,24 @@ void test()
    for(Long64_t i = start; i < kNoEvent; i++){
       tree->GetEntry(i);
       if(trackID > kTrackSize) cout << "Think smart way!" << endl;
-
+      //cout << i << endl;
       if(eventID != currentID){
-         HisEne->Fill(ene * 1000);
-         ene = 0.;
-         PrintTrack(track, fout);
-         fout << "," << endl;
-         ClearTrack(track);
          currentID = eventID;
+         exit(0);
       }
-
-      if(track[trackID].fTrackID != trackID
-         || (trackID == 1 && depositedEnergy > 0.)){// Time have to be set only first one, and also others
-         track[trackID].fTrackID = trackID;
-         track[trackID].fParentID = parentID;
-         track[trackID].fVertex = vertex;
-         track[trackID].fPosition = position;
-         track[trackID].fTime = time;
-      }
-      track[trackID].fTotalDeposit += depositedEnergy;
-      ene += depositedEnergy;
       
-      if(i == kNoEvent - 1){ // The last event
-         HisEne->Fill(ene * 1000);
-         ene = 0.;
-         PrintTrack(track, fout);
-         ClearTrack(track);
-         currentID = eventID;
-      }
+      cout << trackID <<"\t"
+           << parentID <<"\t"
+           << depositedEnergy <<"\t"
+           << position[0] <<"\t"
+           << position[1] <<"\t"
+           << position[2] <<"\t"
+           << vertex[0] <<"\t"
+           << vertex[1] <<"\t"
+           << vertex[2] <<"\t"
+           << time <<"\t"
+           << endl;
+      
    }
 
    fout << "}" << endl;
