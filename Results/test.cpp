@@ -3,10 +3,13 @@
 #include <vector>
 
 #include <TFile.h>
+#include <TChain.h>
 #include <TTree.h>
 #include <TString.h>
 #include <TVector3.h>
 #include <TH1.h>
+
+#include "TInteraction.hpp"
 
 
 const Int_t kTrackSize = 500;
@@ -15,118 +18,109 @@ const Int_t kTrackSize = 500;
 TH1D *HisEne = new TH1D("HisEne", "Deposited Energy", 600, 0., 600.);
 
 
-class TGamma
-{
-public:
-   vector<TVector3> Interaction;
-   vector<Double_t> TotalDeposit; 
-};
-
+// Track class for NOT primary gamma
 class TTrack
 {
 public:
-   TTrack():fTrackID(0), fParentID(0), fVertex(0., 0., 0.),
-            fPosition(0., 0., 0.), fTotalDeposit(0.){};
+   TTrack():TrackID(0), ParentID(0), Vertex(0., 0., 0.), TotalDeposit(0.){};
    ~TTrack(){};
    
-   Int_t fTrackID;
-   Int_t fParentID;
-   TVector3 fVertex;
-   TVector3 fPosition;
-   Double_t fTotalDeposit;
+   Int_t TrackID;
+   Int_t ParentID;
+   TVector3 Vertex;
+   Double_t TotalDeposit;
    
 private:
 
 };
 
 
-Int_t FindDaughter(vector<TTrack> &t, Int_t id)
+class TEvent
+{
+public:
+   TEvent();
+   ~TEvent();
+
+   void SumEnergy();
+   
+   void Clear();
+   void Print();
+   
+   vector<TInteraction> Gamma;
+   vector<TTrack> Track;
+
+   Int_t FindMother(Int_t id);
+
+private:
+
+   void ClearTrack();
+   void ClearGamma();
+   void SumDaughters();
+   
+};
+
+TEvent::TEvent()
+{
+   Track.resize(kTrackSize);
+}
+
+TEvent::~TEvent()
+{}
+
+Int_t TEvent::FindMother(Int_t id)
 {
    if(id <= 1) return 1; // Error
-   if(t[id].fParentID == 1) return id;
-   else return FindDaughter(t, t[id].fParentID);
+   if(Track[id].ParentID == 1) return id;
+   else return FindMother(Track[id].ParentID);
 }
 
-void ClearTrack(vector<TTrack> &t)
+void TEvent::Clear()
 {
-   for(UInt_t i = 0; i < t.size(); i++) t[i] = TTrack();
+   ClearGamma();
+   ClearTrack();
 }
 
-void PrintTrack(vector<TTrack> &t, ofstream &fout)
+void TEvent::ClearGamma()
 {
-   // I beliebe in the vector is sorted by trackID
-
-   // Summing deposited energy by daughter particles
-   vector<TTrack> sorted;
-/*
-   for(auto &track: t){
-      if(track.fTrackID > 0){
-         if(track.fParentID <= 1) sorted.push_back(track);
-         else sorted[FindDaughter(t, track.fTrackID) - 1].fTotalDeposit += track.fTotalDeposit;
-      }
-   }
-*/
-   for(Int_t i = 0; i < kTrackSize; i++){
-      if(t[i].fTrackID > 0){
-         if(t[i].fParentID <= 1) sorted.push_back(t[i]);
-         else sorted[FindDaughter(t, t[i].fTrackID) - 1].fTotalDeposit += t[i].fTotalDeposit;
-      }
-   }
-
-   
-   
-   // Summing deposited energy to interaction point
-   Int_t kNoTrack = sorted.size();
-   for(Int_t i = kNoTrack - 1; i >= 0; i--){
-      TVector3 position1 = sorted[i].fVertex;
-      if(i == 0) position1 = sorted[i].fPosition;
-
-      for(Int_t j = i - 1; j >= 0; j--){
-         TVector3 position2 = sorted[j].fVertex;
-         if(j == 0) position2 = sorted[j].fPosition;
-         
-         if(position1 == position2){
-            sorted[j].fTotalDeposit += sorted[i].fTotalDeposit;
-            sorted.erase(sorted.begin() + i);
-            break;
-         }
-      }
-   }
-
-   // remove 0
-   kNoTrack = sorted.size(); // Use again? think smart way!
-   for(Int_t i = 0; i < kNoTrack; i++){
-      if(!(sorted[i].fTotalDeposit > 0.))
-      sorted.erase(sorted.begin() + i);
-   }
-
-   kNoTrack = sorted.size(); // Use again? think smart way!
-   fout << "{";
-   for(Int_t i = 0; i < kNoTrack; i++){
-      TVector3 position = sorted[i].fVertex;
-      if(i == 0) position = sorted[i].fPosition;
-      
-      fout << "{";
-      fout << "{"
-           << position.x() << ","
-           << position.y() << ","
-           << position.z() << "},";
-      fout << sorted[i].fTotalDeposit;
-      if(i == kNoTrack - 1) fout << "}";
-      else fout << "},";
-   }
-   fout << "}";
-
+   Gamma.clear();
 }
+
+void TEvent::ClearTrack()
+{
+   for(UInt_t i = 0; i < Track.size(); i++) Track[i] = TTrack();
+}
+
+void TEvent::SumEnergy()
+{
+   SumDaughters();
+   for(UInt_t i = Track.size() - 1; i > 0; i--){
+      if(Track[i].TrackID == 0) continue;
+      for(auto &gamma: Gamma){
+         if(gamma.pos == Track[i].Vertex) gamma.e += Track[i].TotalDeposit;
+      }
+   }
+}
+
+void TEvent::SumDaughters()
+{
+   for(UInt_t i = Track.size() - 1; i > 0; i--){
+      if(Track[i].TrackID == 0 || Track[i].ParentID == 1) continue;
+      Int_t mother = FindMother(Track[i].TrackID);
+      Track[mother].TotalDeposit += Track[i].TotalDeposit;
+      //Track[i] = TTrack();
+   }
+}
+
 
 void test()
 {
-   ofstream fout("data.dat");
-   fout << "{";
+   TEvent eve;
 
-   TFile *file = new TFile("test.root", "READ");
-   TTree *tree = (TTree*)file->Get("LGSO");
-
+   //TFile *file = new TFile("test.root", "READ");
+   //TTree *tree = (TTree*)file->Get("LGSO");
+   TChain *tree = new TChain("LGSO");
+   tree->Add("../result_t*");
+   
    tree->SetBranchStatus("*", 0);
 
    Int_t eventID;
@@ -161,9 +155,9 @@ void test()
    tree->SetBranchAddress("VertexPositionY", &vertex[1]);
    tree->SetBranchAddress("VertexPositionZ", &vertex[2]);
  
-   Double_t depositedEnergy;
+   Double_t ene;
    tree->SetBranchStatus("DepositedEnergy", 1);
-   tree->SetBranchAddress("DepositedEnergy", &depositedEnergy);
+   tree->SetBranchAddress("DepositedEnergy", &ene);
    
    Double_t time;
    tree->SetBranchStatus("Time", 1);
@@ -171,13 +165,17 @@ void test()
    
    Long64_t start = 0; // For debug
    const Long64_t kNoEvent = tree->GetEntries();
+   cout << kNoEvent << endl;
    tree->GetEntry(start); 
    Int_t currentID = eventID;
    
-   vector<TTrack> track(kTrackSize); // TrackID have to be smaller than 200
-   ClearTrack(track);
+   //vector<TInteraction> gamma;
+   vector<TInteraction> *pGamma = &eve.Gamma;
+   TFile *output = new TFile("output.root", "RECREATE");
+   TTree *outTree = new TTree("Gamma", "INteraction Gamma");
+   outTree->Branch("GammaData", &pGamma);
 
-   Double_t ene = 0.;
+   Double_t total = 0.;
    
    for(Long64_t i = start; i < kNoEvent; i++){
       tree->GetEntry(i);
@@ -185,23 +183,30 @@ void test()
       //cout << i << endl;
       if(eventID != currentID){
          currentID = eventID;
-         exit(0);
+         eve.SumEnergy();
+         outTree->Fill();
+         eve.Clear();
       }
-      
-      cout << trackID <<"\t"
-           << parentID <<"\t"
-           << depositedEnergy <<"\t"
-           << position[0] <<"\t"
-           << position[1] <<"\t"
-           << position[2] <<"\t"
-           << vertex[0] <<"\t"
-           << vertex[1] <<"\t"
-           << vertex[2] <<"\t"
-           << time <<"\t"
-           << endl;
-      
+
+      if(trackID == 1) eve.Gamma.push_back(TInteraction(position, ene, TString(processName)));
+      else{
+         eve.Track[trackID].TrackID = trackID;
+         eve.Track[trackID].ParentID = parentID;
+         eve.Track[trackID].Vertex = vertex;
+         eve.Track[trackID].TotalDeposit += ene;
+      }
+
+      total += ene;
    }
 
-   fout << "}" << endl;
-   fout.close();
+   cout << total << endl;
+   
+   // For last event
+   eve.SumEnergy();
+   outTree->Fill();
+   eve.Clear();
+   outTree->Write();
+   output->Close();
+
+   //file->Close();
 }

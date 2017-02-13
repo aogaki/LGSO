@@ -1,13 +1,13 @@
 # Scintilator geometry in mm
-/LGSO/Geo/T 500.
-/LGSO/Geo/L 500.
-/LGSO/Geo/W 500.
+/LGSO/Geo/T 800.
+/LGSO/Geo/L 800.
+/LGSO/Geo/W 800.
 
 # Gamma source parameters
 # The center of source
 /LGSO/Source/X 0.
 /LGSO/Source/Y 0.
-/LGSO/Source/Z -50.
+/LGSO/Source/Z 0.
 
 # The source is defined as rectangle shape
 # These are size of the source
@@ -19,5 +19,5 @@
 # of gamma is not (0, 0, 1))
 /LGSO/Source/Flag false
 
-/run/beamOn 100
+/run/beamOn 1000000
 
