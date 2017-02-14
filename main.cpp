@@ -45,7 +45,7 @@ unsigned int GetRandomSeed()
       memblock = new char[size];
       file.read(memblock, size);
       file.close();
-      seed = *reinterpret_cast<int *>(memblock);
+      seed = *reinterpret_cast<unsigned int *>(memblock);
       delete[] memblock;
    } else {
       seed = 0;
